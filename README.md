@@ -8,19 +8,6 @@ It allows users to upload XML documents, navigate through their structure, selec
 
 ---
 
-## ✨ Features
-
-* 📄 Upload and visualize XML documents
-* 🌳 Interactive XML tree explorer
-* 🎯 Select nodes and attributes visually
-* 🔎 Automatically generate XPath expressions
-* 🏷️ Assign custom names to extracted fields
-* 📦 Export mappings as JSON configurations
-* 🔄 Create reusable extraction schemas
-* ⚡ Simplify XML integration workflows
-
----
-
 ## 💡 Use Case
 
 Many systems still exchange information using XML formats such as:
@@ -111,43 +98,3 @@ Assign Field Name
       v
 Export JSON Mapping
 ```
-
----
-
-## Output Format
-
-Generated mappings follow a simple JSON structure:
-
-```json
-{
-  "field_name": {
-    "path": "xpath_expression"
-  }
-}
-```
-
-This format allows integration with different extraction engines or data processing systems.
-
----
-
-## Future Improvements
-
-* Support for JSON documents
-* XPath validation
-* XML schema (XSD) support
-* Drag and drop mapping builder
-* Data preview from selected paths
-* Mapping templates
-* Integration with ETL pipelines
-
----
-
-## Purpose
-
-PathForge was created to reduce the complexity of building XML extraction rules and provide a faster, more intuitive way to transform hierarchical XML structures into reusable data mappings.
-
----
-
-## License
-
-MIT License
