@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>XML Field Mapper · diseño mejorado</title>
+    <!-- Iconos Tabler (ligeros) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" />
+    <style>
+        /* ===== reset + variables ===== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            --font-mono: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Cascadia Code', monospace;
+            --bg-body: #f8faff;
+            --bg-surface: #ffffff;
+            --bg-surface-2: #f0f4fe;
+            --bg-hover: #e9eef9;
+            --bg-info: #e0ebff;
+            --border-subtle: #dce2ed;
+            --border-light: #c8d0df;
+            --text-primary: #0e1b33;
+            --text-secondary: #3a4a66;
+            --text-muted: #6a7b94;
+            --text-info: #1a4c9e;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --shadow-card: 0 6px 20px rgba(0, 20, 40, 0.04), 0 2px 6px rgba(0, 0, 0, 0.02);
+            --transition: 0.2s ease;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg-body);
+            color: var(--text-primary);
+            padding: 28px 24px 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .app-header {
+            display: flex;
+            align-items: baseline;
+            gap: 14px;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+        }
+
+        .app-header h1 {
+            font-weight: 600;
+            font-size: 24px;
+            letter-spacing: -0.01em;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .app-header h1 i {
+            color: #2563eb;
+            font-size: 28px;
+        }
+
+        .app-header .badge {
+            background: var(--bg-surface-2);
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-subtle);
+        }
+
+        #drop-zone {
+            border: 2px dashed var(--border-light);
+            background: var(--bg-surface);
+            border-radius: var(--radius-lg);
+            padding: 3rem 1.5rem;
+            text-align: center;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: background var(--transition), border-color var(--transition);
+            box-shadow: var(--shadow-card);
+            margin-bottom: 24px;
+        }
+
+        #drop-zone:hover {
+            background: var(--bg-surface-2);
+            border-color: #8aa3d4;
+        }
+
+        #drop-zone .icon-big {
+            font-size: 44px;
+            display: block;
+            margin-bottom: 10px;
+            color: #3b6ab0;
+        }
+
+        #drop-zone .title {
+            font-weight: 550;
+            font-size: 18px;
+            margin-bottom: 4px;
+            color: var(--text-primary);
+        }
+
+        #drop-zone .sub {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        #drop-zone input {
+            display: none;
+        }
+
+        #main {
+            display: none;
+            background: var(--bg-surface);
+            border-radius: var(--radius-lg);
+            padding: 24px 24px 20px;
+            box-shadow: var(--shadow-card);
+            border: 1px solid var(--border-subtle);
+        }
+
+        #toolbar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+            background: var(--bg-surface-2);
+            padding: 10px 14px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-subtle);
+        }
+
+        #toolbar input,
+        #toolbar select {
+            height: 36px;
+            font-size: 13px;
+            padding: 0 12px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-light);
+            background: white;
+            color: var(--text-primary);
+            transition: border var(--transition), box-shadow var(--transition);
+            font-family: var(--font-sans);
+            outline: none;
+            min-width: 0;
+        }
+
+        #toolbar input:focus,
+        #toolbar select:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+        }
+
+        #toolbar input {
+            width: 160px;
+        }
+
+        #toolbar input::placeholder {
+            color: var(--text-muted);
+        }
+
+        #add-btn {
+            height: 36px;
+            padding: 0 18px;
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: var(--radius-md);
+            border: none;
+            background: #2563eb;
+            color: white;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: background var(--transition), transform 0.1s;
+            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
+        }
+
+        #add-btn:hover:not(:disabled) {
+            background: #1d4ed8;
+        }
+
+        #add-btn:disabled {
+            opacity: 0.45;
+            cursor: default;
+            box-shadow: none;
+        }
+
+        #add-btn i {
+            font-size: 16px;
+        }
+
+        #sel-hint {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-left: auto;
+            background: white;
+            padding: 4px 14px;
+            border-radius: 40px;
+            border: 1px solid var(--border-subtle);
+            white-space: nowrap;
+        }
+
+        .section {
+            display: flex;
+            gap: 18px;
+            margin-top: 6px;
+            height: 500px;
+            min-height: 400px;
+        }
+
+        #tree-panel {
+            flex: 1;
+            overflow: auto;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 14px 12px;
+            background: var(--bg-surface);
+            font-family: var(--font-mono);
+            font-size: 13px;
+            line-height: 1.9;
+            transition: border 0.1s;
+        }
+
+        #tree-panel:focus-within {
+            border-color: #2563eb;
+        }
+
+        #right-panel {
+            width: 290px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            flex-shrink: 0;
+        }
+
+        #selection-card {
+            background: var(--bg-surface-2);
+            border-radius: var(--radius-md);
+            padding: 14px 16px;
+            border: 1px solid var(--border-subtle);
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        #selection-card .label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        #selection-card .path {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            color: var(--text-primary);
+            word-break: break-all;
+            line-height: 1.5;
+            background: white;
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        #selection-card .path.placeholder {
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        #selection-card .meta {
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        #selection-card .meta .tag {
+            background: white;
+            padding: 2px 10px;
+            border-radius: 30px;
+            font-size: 11px;
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+        }
+
+        #fields-list {
+            flex: 1;
+            overflow: auto;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 8px 10px;
+            background: var(--bg-surface);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-height: 100px;
+        }
+
+        .field-chip {
+            background: var(--bg-surface-2);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 8px 10px;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            transition: background var(--transition);
+        }
+
+        .field-chip:hover {
+            background: var(--bg-hover);
+        }
+
+        .field-chip .chip-name {
+            font-weight: 550;
+            font-size: 13px;
+            color: var(--text-primary);
+        }
+
+        .field-chip .chip-name .prefix-badge {
+            font-weight: 400;
+            color: var(--text-muted);
+            font-size: 11px;
+            background: white;
+            padding: 1px 10px;
+            border-radius: 30px;
+            margin-left: 6px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .field-chip .chip-name .type-badge {
+            font-weight: 400;
+            color: var(--text-muted);
+            font-size: 10px;
+            background: #e6efff;
+            padding: 1px 8px;
+            border-radius: 30px;
+            margin-left: 4px;
+        }
+
+        .field-chip .chip-path {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--text-muted);
+            word-break: break-all;
+            margin-top: 2px;
+        }
+
+        .chip-del {
+            cursor: pointer;
+            color: var(--text-muted);
+            flex-shrink: 0;
+            padding: 4px;
+            border-radius: 30px;
+            transition: background var(--transition), color var(--transition);
+            font-size: 16px;
+            line-height: 1;
+        }
+
+        .chip-del:hover {
+            background: rgba(0, 0, 0, 0.04);
+            color: #b91c1c;
+        }
+
+        .empty-hint {
+            color: var(--text-muted);
+            font-size: 13px;
+            padding: 20px 8px;
+            text-align: center;
+            font-style: italic;
+        }
+
+        #output-area {
+            margin-top: 18px;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            background: var(--bg-surface);
+        }
+
+        #output-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border-subtle);
+            font-size: 13px;
+            color: var(--text-secondary);
+            background: var(--bg-surface-2);
+        }
+
+        #output-header span {
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #output-header span i {
+            color: #2563eb;
+        }
+
+        #copy-btn {
+            height: 30px;
+            padding: 0 16px;
+            font-size: 12px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-light);
+            background: white;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: background var(--transition), border var(--transition);
+        }
+
+        #copy-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--border-light);
+        }
+
+        #copy-btn i {
+            font-size: 14px;
+        }
+
+        #output-code {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            padding: 14px 16px;
+            white-space: pre;
+            overflow: auto;
+            max-height: 200px;
+            line-height: 1.7;
+            color: var(--text-primary);
+            background: #fafcff;
+        }
+
+        .node-row,
+        .attr-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 1px 0;
+            cursor: pointer;
+            border-radius: 6px;
+            padding-left: 4px;
+            transition: background 0.1s;
+        }
+
+        .node-row:hover,
+        .attr-row:hover {
+            background: var(--bg-hover);
+        }
+
+        .node-row.selected,
+        .attr-row.selected {
+            background: var(--bg-info);
+            color: var(--text-info);
+        }
+
+        .node-row.selected .node-tag,
+        .node-row.selected .node-attr,
+        .node-row.selected .node-val,
+        .attr-row.selected .node-attr,
+        .attr-row.selected .node-val {
+            color: var(--text-info) !important;
+        }
+
+        .toggle {
+            width: 16px;
+            text-align: center;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 10px;
+            user-select: none;
+            flex-shrink: 0;
+            transition: transform 0.15s;
+        }
+
+        .node-tag {
+            color: #1a5fb4;
+            font-weight: 500;
+        }
+
+        .node-attr {
+            color: #2b6d2b;
+            font-weight: 450;
+        }
+
+        .node-val {
+            color: #a64d2e;
+        }
+
+        .attr-row {
+            padding-left: 28px !important;
+        }
+
+        .attr-row .node-attr {
+            color: #2b6d2b;
+        }
+
+        @media (max-width: 800px) {
+            body {
+                padding: 16px 12px;
+            }
+
+            .section {
+                flex-direction: column;
+                height: auto;
+            }
+
+            #right-panel {
+                width: 100%;
+                flex-direction: column;
+            }
+
+            #tree-panel {
+                height: 340px;
+            }
+
+            #fields-list {
+                min-height: 140px;
+                max-height: 200px;
+            }
+
+            #toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            #sel-hint {
+                margin-left: 0;
+                text-align: center;
+            }
+
+            #toolbar input {
+                width: 100% !important;
+            }
+
+            #add-btn {
+                justify-content: center;
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #eef2f9;
+            border-radius: 20px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c8d0df;
+            border-radius: 20px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8b3ca;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-header">
+        <h1><i class="ti ti-file-code"></i> XML Field Mapper</h1>
+        <span class="badge"><i class="ti ti-xml" style="margin-right:4px;"></i> XPath visual</span>
+    </div>
+
+    <div id="drop-zone" onclick="document.getElementById('file-input').click()">
+        <input type="file" id="file-input" accept=".xml" />
+        <i class="ti ti-file-type-xml icon-big" aria-hidden="true"></i>
+        <div class="title">Carga tu archivo XML</div>
+        <div class="sub">haz clic o arrastra aquí</div>
+    </div>
+
+    <div id="main">
+        <div id="toolbar">
+            <input id="field-name" placeholder="Nombre campo (ej: GUIA)" />
+            <input id="field-prefix" placeholder="Prefix (opcional)" style="width:140px;" />
+            <button id="add-btn" disabled onclick="addField()"><i class="ti ti-plus" aria-hidden="true"></i> Agregar</button>
+            <span id="sel-hint"><i class="ti ti-arrow-left" style="margin-right:4px;"></i> selecciona un nodo</span>
+        </div>
+
+        <div class="section">
+            <div id="tree-panel" tabindex="0"></div>
+            <div id="right-panel">
+                <div id="selection-card">
+                    <div class="label"><i class="ti ti-crosshair" style="margin-right:4px;"></i> Selección actual</div>
+                    <div class="path placeholder" id="sel-path">ninguna</div>
+                    <div class="meta">
+                        <span class="tag" id="sel-type">—</span>
+                        <span class="tag" id="sel-extract-type">tipo: —</span>
+                    </div>
+                </div>
+                <div style="font-size:12px;font-weight:600;color:var(--text-secondary);padding:0 4px;display:flex;align-items:center;gap:8px;">
+                    <i class="ti ti-list-check"></i> Campos mapeados
+                    <span style="font-weight:400;font-size:11px;background:var(--bg-surface-2);padding:0 10px;border-radius:30px;border:1px solid var(--border-subtle);" id="field-count">0</span>
+                </div>
+                <div id="fields-list"><div class="empty-hint">Agrega campos desde el árbol</div></div>
+            </div>
+        </div>
+
+        <div id="output-area">
+            <div id="output-header">
+                <span><i class="ti ti-code"></i> field_map JSON</span>
+                <button id="copy-btn" onclick="copyOutput()"><i class="ti ti-copy" aria-hidden="true"></i> Copiar</button>
+            </div>
+            <div id="output-code">{}</div>
+        </div>
+    </div>
+
+    <script>
+        // ===== estado =====
+        let selectedNode = null;
+        let selectedExtractType = 'text';
+        let fields = [];
+        let nsMap = {};
+
+        const fileInput = document.getElementById('file-input');
+        const dropZone = document.getElementById('drop-zone');
+        const addBtn = document.getElementById('add-btn');
+        const fieldNameInput = document.getElementById('field-name');
+        const fieldPrefixInput = document.getElementById('field-prefix');
+
+        // ===== eventos drag & drop / file =====
+        dropZone.addEventListener('dragover', function(e) { 
+            e.preventDefault();
+            dropZone.style.background = '#eaf0fd'; 
+        });
+        dropZone.addEventListener('dragleave', function() { 
+            dropZone.style.background = ''; 
+        });
+        dropZone.addEventListener('drop', function(e) { 
+            e.preventDefault();
+            dropZone.style.background = '';
+            if (e.dataTransfer.files.length > 0) {
+                loadFile(e.dataTransfer.files[0]);
+            }
+        });
+        fileInput.addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                loadFile(e.target.files[0]);
+            }
+        });
+
+        function loadFile(file) {
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) { 
+                parseXML(e.target.result); 
+            };
+            reader.readAsText(file, 'utf-8');
+        }
+
+        // ===== parseo =====
+        function parseXML(text) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, 'application/xml');
+            const err = doc.querySelector('parseerror');
+            if (err) { 
+                alert('XML inválido: ' + err.textContent.slice(0, 140)); 
+                return; 
+            }
+
+            nsMap = {};
+            extractNamespaces(doc.documentElement);
+
+            document.getElementById('drop-zone').style.display = 'none';
+            document.getElementById('main').style.display = 'block';
+            const tree = document.getElementById('tree-panel');
+            tree.innerHTML = '';
+            renderNode(doc.documentElement, tree, '', 0);
+            updateOutput();
+            updateFieldCount();
+            // reset
+            selectedNode = null;
+            document.getElementById('sel-path').textContent = 'ninguna';
+            document.getElementById('sel-path').className = 'path placeholder';
+            document.getElementById('sel-type').textContent = '—';
+            document.getElementById('sel-extract-type').textContent = 'tipo: —';
+            addBtn.disabled = true;
+        }
+
+        function extractNamespaces(el) {
+            for (const attr of el.attributes) {
+                if (attr.name === 'xmlns') nsMap[''] = attr.value;
+                else if (attr.name.startsWith('xmlns:')) {
+                    const prefix = attr.name.slice(6);
+                    nsMap[prefix] = attr.value;
+                }
+            }
+            for (const child of el.children) extractNamespaces(child);
+        }
+
+        function getLocalName(el) {
+            return el.localName || el.tagName.replace(/^.*:/, '');
+        }
+
+        function getNS(el) {
+            return el.namespaceURI || '';
+        }
+
+        // ===== FUNCIÓN PRINCIPAL CORREGIDA =====
+        function buildXPath(el) {
+            if (el.nodeType === 2) {
+                const parent = el.ownerElement;
+                
+                // Si es atributo del elemento raíz → usar ./
+                if (parent === parent.ownerDocument.documentElement) {
+                    return './@' + el.localName;
+                }
+                
+                // Para atributos anidados, usar el path normal
+                const parentPath = buildXPath(parent);
+                return parentPath + '/@' + el.localName;
+            }
+            const parts = [];
+            let cur = el;
+            while (cur && cur.nodeType === 1) {
+                const local = getLocalName(cur);
+                const ns = getNS(cur);
+                // Usar formato con {namespace} siempre
+                let tag = ns ? `{${ns}}${local}` : local;
+                
+                // Agregar predicado si existe un atributo identificador
+                if (cur.hasAttribute('atributo')) {
+                    tag += `[@atributo='${cur.getAttribute('atributo')}']`;
+                } else if (cur.hasAttribute('name')) {
+                    tag += `[@name='${cur.getAttribute('name')}']`;
+                } else if (cur.hasAttribute('id')) {
+                    tag += `[@id='${cur.getAttribute('id')}']`;
+                }
+
+                parts.unshift(tag);
+                cur = cur.parentElement;
+            }
+            // Siempre usar .// para búsqueda en cualquier profundidad
+            return './/' + parts.slice(1).join('/');
+        }
+
+        // ===== DETECTAR TIPO DE EXTRACCIÓN =====
+        function detectExtractType(el, type) {
+            // Si es un atributo, siempre es 'attr'
+            if (type === 'attr') return 'attr';
+            
+            // Si es un elemento y tiene atributo 'valor' (como datosExtra de Diverza)
+            if (el.nodeType === 1 && el.hasAttribute('valor')) {
+                return 'valor';
+            }
+            
+            // Si es un elemento con atributo y sin texto, probablemente el valor está en un atributo
+            if (el.nodeType === 1) {
+                const hasText = el.textContent && el.textContent.trim().length > 0;
+                const hasAttrs = el.attributes.length > 0;
+                if (hasAttrs && !hasText) {
+                    const valueAttrs = ['valor', 'value', 'Valor', 'VALOR'];
+                    for (const attr of valueAttrs) {
+                        if (el.hasAttribute(attr)) {
+                            return 'valor';
+                        }
+                    }
+                }
+            }
+            
+            return 'text';
+        }
+
+        function escHtml(s) {
+            return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        // ===== render árbol =====
+        let lastSelected = null;
+
+        function renderNode(el, container, parentPath, depth) {
+            const local = getLocalName(el);
+            const ns = getNS(el);
+            const tag = ns ? `{${ns}}${local}` : local;
+
+            const hasChildren = el.children.length > 0;
+            const textContent = !hasChildren && el.textContent ? el.textContent.trim() : '';
+            const xpath = buildXPath(el);
+
+            // Mostrar atributos inline
+            let inlineAttrs = '';
+            for (const attr of el.attributes) {
+                if (attr.name.startsWith('xmlns')) continue;
+                let valStr = attr.value.length > 40 ? attr.value.slice(0, 40) + '…' : attr.value;
+                const attrDisplay = attr.name.includes(':') ? attr.name : attr.localName;
+                inlineAttrs += ` <span style="font-weight:normal"><span style="color:#2b6d2b">${attrDisplay}</span>="<span style="color:#a64d2e">${escHtml(valStr)}</span>"</span>`;
+            }
+
+            const row = document.createElement('div');
+            row.className = 'node-row';
+            row.style.paddingLeft = (depth * 16 + 2) + 'px';
+
+            const toggle = document.createElement('span');
+            toggle.className = 'toggle';
+            toggle.textContent = hasChildren ? '▶' : '·';
+            toggle.style.color = hasChildren ? 'var(--text-muted)' : 'transparent';
+
+            const label = document.createElement('span');
+            const tagDisplay = el.tagName.includes(':') ? el.tagName : local;
+            label.innerHTML = `<span class="node-tag">&lt;${tagDisplay}${inlineAttrs}&gt;</span>` +
+                (textContent ? ` <span class="node-val">${escHtml(textContent.slice(0, 60))}${textContent.length > 60 ? '…' : ''}</span>` : '');
+
+            row.appendChild(toggle);
+            row.appendChild(label);
+
+            row.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const extractType = detectExtractType(el, 'element');
+                selectItem(row, xpath, textContent ? 'text' : 'element', el, extractType);
+            });
+
+            const childWrap = document.createElement('div');
+            childWrap.style.display = 'none';
+
+            if (hasChildren) {
+                toggle.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const open = childWrap.style.display !== 'none';
+                    childWrap.style.display = open ? 'none' : 'block';
+                    toggle.textContent = open ? '▶' : '▼';
+                });
+                if (depth < 2) {
+                    childWrap.style.display = 'block';
+                    toggle.textContent = '▼';
+                }
+            }
+
+            container.appendChild(row);
+
+            // Atributos como hijos seleccionables
+            for (const attr of el.attributes) {
+                if (attr.name.startsWith('xmlns')) continue;
+                const attrPath = buildXPath(attr);
+                const aRow = document.createElement('div');
+                aRow.className = 'attr-row';
+                aRow.style.paddingLeft = (depth * 16 + 24) + 'px';
+                const attrDisplay = attr.name.includes(':') ? attr.name : attr.localName;
+                aRow.innerHTML =
+                    `<span class="node-attr">@${attrDisplay}</span> <span class="node-val">${escHtml(attr.value.slice(0, 60))}${attr.value.length > 60 ? '…' : ''}</span>`;
+                aRow.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    selectItem(aRow, attrPath, 'attr', attr, 'attr');
+                });
+                childWrap.appendChild(aRow);
+            }
+
+            for (const child of el.children) {
+                renderNode(child, childWrap, xpath, depth + 1);
+            }
+
+            container.appendChild(childWrap);
+        }
+
+        function selectItem(el, path, type, node, extractType) {
+            if (lastSelected) lastSelected.classList.remove('selected');
+            el.classList.add('selected');
+            lastSelected = el;
+            selectedNode = { path: path, type: type, node: node, extractType: extractType || 'text' };
+            selectedExtractType = extractType || 'text';
+            
+            const pathEl = document.getElementById('sel-path');
+            pathEl.textContent = path;
+            pathEl.className = 'path';
+            
+            const typeEl = document.getElementById('sel-type');
+            if (type === 'attr') {
+                const attrDisplay = node.name.includes(':') ? node.name : node.localName;
+                typeEl.textContent = 'atributo: ' + attrDisplay + '="' + node.value + '"';
+            } else if (type === 'text') {
+                const t = node.textContent.trim().slice(0, 60);
+                typeEl.textContent = 'texto: "' + t + (node.textContent.trim().length > 60 ? '…' : '') + '"';
+            } else {
+                typeEl.textContent = 'elemento (sin texto directo)';
+            }
+            
+            const extractTypeEl = document.getElementById('sel-extract-type');
+            extractTypeEl.textContent = 'tipo: ' + (extractType || 'text');
+            
+            document.getElementById('sel-hint').innerHTML = '<i class="ti ti-arrow-left" style="margin-right:4px;"></i> escribe nombre y agrega';
+            addBtn.disabled = false;
+        }
+
+        // ===== campos =====
+        function addField() {
+            const name = document.getElementById('field-name').value.trim().toUpperCase();
+            const prefix = document.getElementById('field-prefix').value.trim();
+            if (!name || !selectedNode) return;
+            if (fields.find(function(f) { return f.name === name; })) { 
+                alert('Ya existe el campo "' + name + '"'); 
+                return; 
+            }
+            
+            const type = selectedNode.extractType || 'text';
+            
+            fields.push({ name: name, path: selectedNode.path, type: type, prefix: prefix });
+            document.getElementById('field-name').value = '';
+            document.getElementById('field-prefix').value = '';
+            renderFields();
+            updateOutput();
+            updateFieldCount();
+            addBtn.disabled = true;
+            document.getElementById('sel-hint').innerHTML = '<i class="ti ti-arrow-left" style="margin-right:4px;"></i> selecciona un nodo';
+        }
+
+        function removeField(name) {
+            fields = fields.filter(function(f) { return f.name !== name; });
+            renderFields();
+            updateOutput();
+            updateFieldCount();
+        }
+
+        function renderFields() {
+            const list = document.getElementById('fields-list');
+            if (fields.length === 0) {
+                list.innerHTML = '<div class="empty-hint">Agrega campos desde el árbol</div>';
+                return;
+            }
+            list.innerHTML = '';
+            for (const f of fields) {
+                const chip = document.createElement('div');
+                chip.className = 'field-chip';
+                var prefixHtml = f.prefix ? '<span class="prefix-badge">prefix: ' + f.prefix + '</span>' : '';
+                var typeHtml = '<span class="type-badge">' + f.type + '</span>';
+                chip.innerHTML = 
+                    '<div style="flex:1;min-width:0">' +
+                        '<div class="chip-name">' + f.name + ' ' + prefixHtml + ' ' + typeHtml + '</div>' +
+                        '<div class="chip-path">' + f.path + '</div>' +
+                    '</div>' +
+                    '<span class="chip-del" onclick="removeField(\'' + f.name + '\')" title="Eliminar"><i class="ti ti-x" aria-hidden="true"></i></span>';
+                list.appendChild(chip);
+            }
+        }
+
+        function updateFieldCount() {
+            document.getElementById('field-count').textContent = fields.length;
+        }
+
+        function updateOutput() {
+            const obj = {};
+            for (const f of fields) {
+                const entry = { source: 'xpath', path: f.path, type: f.type };
+                if (f.prefix) entry.prefix = f.prefix;
+                obj[f.name] = entry;
+            }
+            document.getElementById('output-code').textContent = JSON.stringify(obj, null, 2);
+        }
+
+        function copyOutput() {
+            const text = document.getElementById('output-code').textContent;
+            navigator.clipboard.writeText(text).then(function() {
+                const btn = document.getElementById('copy-btn');
+                btn.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i> Copiado';
+                setTimeout(function() { 
+                    btn.innerHTML = '<i class="ti ti-copy" aria-hidden="true"></i> Copiar'; 
+                }, 1500);
+            });
+        }
+
+        // ===== tecla Enter en campo nombre =====
+        fieldNameInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !addBtn.disabled) addField();
+        });
+        fieldPrefixInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !addBtn.disabled) addField();
+        });
+    </script>
+</body>
+</html>
